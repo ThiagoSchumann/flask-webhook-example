@@ -1,10 +1,9 @@
 from flask import Flask, request, jsonify
 import requests
 import time
+import threading  # Importe a biblioteca threading
 
 app = Flask(__name__)
-
-# Lista para armazenar URLs registradas pelo e-commerce
 webhook_urls = []
 
 
@@ -17,21 +16,23 @@ def register():
     return jsonify({'status': 'invalid data'}), 400
 
 
+def notify_webhooks():  # Função separada para notificar webhooks
+    time.sleep(5)
+    for url in webhook_urls:
+        requests.post(url, json={'message': 'Pagamento Confirmado'})
+
+
 @app.route('/initiate-payment', methods=['POST'])
 def initiate_payment():
-    # Processar venda aqui
     data = request.json
     print(
         f"Processando venda para item: {data['item']} pelo valor de: ${data['amount']}")
 
-    # Simulação: aguardar 5 segundos para processar a venda
-    time.sleep(5)
+    # Inicie a função notify_webhooks em uma thread separada
+    thread = threading.Thread(target=notify_webhooks)
+    thread.start()
 
-    # Notificar e-commerce sobre a confirmação de pagamento
-    for url in webhook_urls:
-        requests.post(url, json={'message': 'Pagamento Confirmado'})
-
-    return jsonify({'status': 'Payment Processed'}), 200
+    return jsonify({'status': 'Pagamento enviado para processamento'}), 200
 
 
 if __name__ == '__main__':
